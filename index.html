@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocus Outbound Maturity Success Plan Generator</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        const ASSESSMENT_DATA = {
+            accountPrioritization: {
+                title: "Account Prioritization",
+                questions: [
+                    {
+                        id: "ap1",
+                        question: "How do you currently prioritize accounts for outbound?",
+                        options: [
+                            { value: 1, label: "We don't have a formal process" },
+                            { value: 2, label: "We use static criteria like company size and industry" },
+                            { value: 3, label: "We use firmographics, technographics, and growth filters" },
+                            { value: 4, label: "We have custom scoring with niche signals that we review regularly" },
+                            { value: 5, label: "We use AI-powered dynamic scoring that continuously discovers high-fit accounts" }
+                        ]
+                    },
+                    {
+                        id: "ap2",
+                        question: "How often do you review and update your ICP criteria?",
+                        options: [
+                            { value: 1, label: "Never or rarely" },
+                            { value: 2, label: "Annually" },
+                            { value: 3, label: "Quarterly" },
+                            { value: 4, label: "Monthly" },
+                            { value: 5, label: "Continuously/automatically" }
+                        ]
+                    }
+                ]
+            },
+            intentSignals: {
+                title: "Intent Signals",
+                questions: [
+                    {
+                        id: "is2",
+                        question: "How do you act on intent signals?",
+                        options: [
+                            { value: 1, label: "We don't track intent signals" },
+                            { value: 2, label: "Manual review when we remember to check" },
+                            { value: 3, label: "Signals trigger tasks in our playbooks" },
+                            { value: 4, label: "Signals trigger automated actions and personalized outreach" },
+                            { value: 5, label: "Signals orchestrate multi-channel campaigns with AI-optimized timing" }
+                        ]
+                    }
+                ]
+            },
+            playbooks: {
+                title: "Playbooks",
+                questions: [
+                    {
+                        id: "pb2",
+                        question: "Do your playbooks include automation?",
+                        options: [
+                            { value: 1, label: "No automation" },
+                            { value: 2, label: "Some manual triggers and actions" },
+                            { value: 3, label: "Automated surfacing to reps, manual actions" },
+                            { value: 4, label: "Mix of automated and manual actions with SLAs" },
+                            { value: 5, label: "Fully automated with human-in-the-loop for high-value only" }
+                        ]
+                    },
+                    {
+                        id: "pb1",
+                        question: "What types of playbooks are you currently running? (Select all that apply)",
+                        type: "checkbox",
+                        options: [
+                            { value: "relevant_news", label: "Relevant news on company or industry (Cold Outbound)", category: "cold" },
+                            { value: "social_signals", label: "Social signals (Cold Outbound)", category: "cold" },
+                            { value: "new_product_launch", label: "New product launch (Cold Outbound)", category: "cold" },
+                            { value: "10k_insights", label: "Relevant insights from 10-K (Cold Outbound)", category: "cold" },
+                            { value: "stakeholder_promoted", label: "Stakeholder promoted (Cold Outbound)", category: "cold" },
+                            { value: "executive_podcast", label: "Executive on recent podcast (Cold Outbound)", category: "cold" },
+                            { value: "acquisition", label: "Acquisition (Cold Outbound)", category: "cold" },
+                            { value: "layoffs", label: "Layoffs (Cold Outbound)", category: "cold" },
+                            { value: "fundraise", label: "Fundraise round (Cold Outbound)", category: "cold" },
+                            { value: "geo_expansion", label: "Geo expansion (Cold Outbound)", category: "cold" },
+                            { value: "relevant_tech", label: "Relevant technology in tech stack (Cold Outbound)", category: "cold" },
+                            { value: "job_postings", label: "Job postings of target role (Cold Outbound)", category: "cold" },
+                            { value: "job_switcher", label: "Job switcher / champion joins new account (Warm Outbound)", category: "warm" },
+                            { value: "website_visit", label: "Visited your website (Warm Outbound)", category: "warm" },
+                            { value: "content_engagement", label: "Engaged with your content (Warm Outbound)", category: "warm" },
+                            { value: "event_attendance", label: "Previously attended event (Warm Outbound)", category: "warm" },
+                            { value: "closed_lost", label: "Previously closed lost (Warm Outbound)", category: "warm" },
+                            { value: "demo_request", label: "Requested a demo (Warm Outbound)", category: "warm" },
+                            { value: "keyword_searches", label: "Intent keyword searches (Warm Outbound)", category: "warm" },
+                            { value: "interactive_demo", label: "Completed interactive demo (Warm Outbound)", category: "warm" },
+                            { value: "usage_increase", label: "Increase in usage / health (PLG / Expansion)", category: "plg" },
+                            { value: "director_signup", label: "Director-Level+ Sign Up (PLG / Expansion)", category: "plg" },
+                            { value: "new_team", label: "New team using product (PLG / Expansion)", category: "plg" },
+                            { value: "trial_ending", label: "Free trial ending (PLG / Expansion)", category: "plg" },
+                            { value: "paywall_limits", label: "Nearing paywall / usage limits (PLG / Expansion)", category: "plg" },
+                            { value: "invites_sent", label: "Increase in invites sent (PLG / Expansion)", category: "plg" },
+                            { value: "integrations", label: "New integrations connected (PLG / Expansion)", category: "plg" },
+                            { value: "multiple_workspaces", label: "Multiple workspaces (PLG / Expansion)", category: "plg" },
+                            { value: "whitespace", label: "Account whitespace (PLG / Expansion)", category: "plg" },
+                            { value: "new_dept_user", label: "New department user added (PLG / Expansion)", category: "plg" },
+                            { value: "qbr_timing", label: "3 months since last QBR (PLG / CS / Expansion)", category: "plg" }
+                        ]
+                    }
+                ]
+            },
+            accountResearch: {
+                title: "Account Research",
+                questions: [
+                    {
+                        id: "ar1",
+                        question: "How do reps research accounts before outreach?",
+                        options: [
+                            { value: 1, label: "Manual, inconsistent - LinkedIn and Google searches" },
+                            { value: 2, label: "Basic research using templates (LinkedIn, Google)" },
+                            { value: 3, label: "Use ChatGPT/AI for external research plus internal CRM data" },
+                            { value: 4, label: "Consolidated view: CRM, product usage, call recordings, real-time signals" },
+                            { value: 5, label: "Multiple AI-generated templates based on stage and use case" }
+                        ]
+                    },
+                    {
+                        id: "ar2",
+                        question: "How long does account research typically take per account?",
+                        options: [
+                            { value: 1, label: "30+ minutes" },
+                            { value: 2, label: "15-30 minutes" },
+                            { value: 3, label: "10-15 minutes" },
+                            { value: 4, label: "5-10 minutes" },
+                            { value: 5, label: "Under 5 minutes with instant AI summaries" }
+                        ]
+                    }
+                ]
+            },
+            contactSelection: {
+                title: "Contact Selection",
+                questions: [
+                    {
+                        id: "cs1",
+                        question: "How do you identify the right contacts to engage?",
+                        options: [
+                            { value: 1, label: "Manual, inconsistent process" },
+                            { value: 2, label: "Basic persona guidance (sales nav saved searches), manual enrichment" },
+                            { value: 3, label: "Guidance on multi-threading, manual enrichment" },
+                            { value: 4, label: "AI recommended contacts, org maps, automated enrichment" },
+                            { value: 5, label: "Automated persona scoring, org heat maps, advanced list building" }
+                        ]
+                    },
+                    {
+                        id: "cs2",
+                        question: "How do you handle multi-threading?",
+                        options: [
+                            { value: 1, label: "We don't consistently multi-thread" },
+                            { value: 2, label: "Manual tracking of who we've contacted" },
+                            { value: 3, label: "SmartMap shows coverage gaps" },
+                            { value: 4, label: "AI recommends next contacts based on org structure and engagement" },
+                            { value: 5, label: "Automated contact sequences with org-wide orchestration" }
+                        ]
+                    }
+                ]
+            },
+            messaging: {
+                title: "Messaging",
+                questions: [
+                    {
+                        id: "msg1",
+                        question: "How personalized is your outbound messaging?",
+                        options: [
+                            { value: 1, label: "Generic templates" },
+                            { value: 2, label: "Light personalization with demographics (name, company, title)" },
+                            { value: 3, label: "Manual personalization based on account priorities/pains" },
+                            { value: 4, label: "Automated personalization using signals and research" },
+                            { value: 5, label: "Automated consultative & strategic messaging with AI" }
+                        ]
+                    },
+                    {
+                        id: "msg2",
+                        question: "How do you generate outreach content?",
+                        options: [
+                            { value: 1, label: "Reps write from scratch each time" },
+                            { value: 2, label: "Copy/paste from shared template library" },
+                            { value: 3, label: "Templates with merge fields for basic personalization" },
+                            { value: 4, label: "AI generates messages using account context and signals" },
+                            { value: 5, label: "AI generates multi-step sequences with A/B testing and optimization" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        const PLAY_RECOMMENDATIONS = {
+            // Cold Outbound Plays
+            relevant_news: {
+                title: "News & Industry Events Play",
+                description: "Identify and reach out to accounts experiencing significant news or industry changes that create buying windows.",
+                businessContext: "Timing is everything in sales. When a company announces a major change—whether it's launching a new product, entering a new market, or responding to industry shifts—they often need new tools and solutions. This play helps your team strike while the iron is hot, positioning your solution as directly relevant to their current situation.",
+                pocusImplementation: "In Pocus, create a playbook triggered by news signals from your intent data provider or enrichment source. Configure the play to surface accounts within 48 hours of the news event for maximum relevance.",
+                setupSteps: [
+                    "Connect news/intent data source (6sense, Bombora, or LinkedIn insights)",
+                    "Create a Signal in Pocus for 'Recent Company News' with filters for relevance",
+                    "Build a Playbook triggered when the signal fires",
+                    "Set SLA to 24-48 hours for timely outreach",
+                    "Create a Messaging Agent trained on news-based outreach examples"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/8728704613-introduction-to-playbooks"
+            },
+            job_switcher: {
+                title: "Job Switcher / Champion Migration Play",
+                description: "Engage former champions and advocates who have moved to new companies, bringing their positive experience with your solution to their new role.",
+                businessContext: "Your best champions don't disappear when they change jobs—they become your most powerful advocates at new accounts. People who've successfully used your product are 3-5x more likely to buy again in their new role. This play ensures you never lose track of these warm relationships and can leverage them for new business.",
+                pocusImplementation: "Use Pocus enrichment to automatically detect job changes among contacts in your CRM. Create a playbook that surfaces these contacts within 30-90 days of their move (the sweet spot when they're settling in but not yet committed to other tools).",
+                setupSteps: [
+                    "Enable Pocus enrichment on the Person object to track job changes",
+                    "Create a Signal for 'Recent Job Change' (moved in last 90 days)",
+                    "Filter for personas who were engaged or customers at previous company",
+                    "Build Playbook with 30-day delay after job change (let them settle in)",
+                    "Use AI Strategy to understand their new company's priorities",
+                    "Create personalized messaging referencing their previous success"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/1991751169-signals"
+            },
+            website_visit: {
+                title: "Website Intent Play",
+                description: "Capture and convert accounts showing buying intent through website visits to high-value pages.",
+                businessContext: "When a prospect visits your pricing page or product documentation, they're actively evaluating solutions. Research shows you have a 72-hour window to engage before they move on. This play ensures your team never misses these hot opportunities by immediately surfacing high-intent visitors.",
+                pocusImplementation: "Install the Pocus tracking snippet on key pages, then create playbooks for different intent levels (pricing = high, blog = medium, homepage = low). Route to appropriate reps based on account ownership.",
+                setupSteps: [
+                    "Install Pocus website tracking snippet on pricing, demo, product pages",
+                    "Define high-intent pages in Workspace Settings",
+                    "Create tiered playbooks: Pricing visits (24hr SLA), Product page (48hr SLA)",
+                    "Use 'Last page visited' and 'Visit recency' filters in playbook triggers",
+                    "Enrich visitors with Pocus data to identify company and personas",
+                    "Enable automated enrichment and CRM contact creation"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/9498485140-pocus-onboarding-wizard"
+            },
+            demo_request: {
+                title: "Demo Request Follow-Up Play",
+                description: "Ensure fast, consistent follow-up with every demo request with personalized context.",
+                businessContext: "Demo requests are the hottest leads in your pipeline, but speed to lead is critical. Companies that respond within 5 minutes are 21x more likely to qualify the lead than those who wait 30 minutes. This play automates immediate response while ensuring reps have full context for high-quality conversations.",
+                pocusImplementation: "Integrate your form provider (HubSpot, Marketo) with Pocus to automatically surface demo requests in rep inboxes with enriched account context and AI-generated meeting prep.",
+                setupSteps: [
+                    "Connect form submissions from your MAP to Pocus (or sync to CRM first)",
+                    "Create playbook triggered by 'Form Type = Demo Request'",
+                    "Set 2-hour SLA for response",
+                    "Auto-enrich contact and create CRM record if new",
+                    "Surface AI Strategy insights for meeting prep",
+                    "Auto-generate personalized outreach using Messaging Agents"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/2739812848-plays"
+            },
+            director_signup: {
+                title: "Director+ Sign-Up Play (PLG)",
+                description: "Identify and engage senior decision-makers who sign up for your product, accelerating free-to-paid conversion.",
+                businessContext: "When a VP or Director signs up, it signals buying intent at a decision-maker level. These users are evaluating on behalf of their team and have budget authority. Converting them quickly can mean landing entire departments vs. individual users. Speed and relevance are critical—they expect a different experience than individual contributors.",
+                pocusImplementation: "Create a signal identifying director+ users based on title enrichment, then build a playbook that surfaces them within 24 hours of signup with personalized outreach.",
+                setupSteps: [
+                    "Create 'Director+' Signal using title contains: Director, VP, Head, Chief, C-Suite",
+                    "Build playbook: Users who signed up in last 7 days AND Director+ = True",
+                    "Set 24-hour SLA for high-touch outreach",
+                    "Use SmartMap to identify team size and org structure",
+                    "Create Messaging Agent for executive outreach with ROI focus",
+                    "Route to AE (not SDR) for enterprise-grade conversations"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/9023409644-goals"
+            },
+            trial_ending: {
+                title: "Free Trial Ending Play (PLG)",
+                description: "Proactively engage users approaching the end of their trial with compelling conversion offers and support.",
+                businessContext: "The last 3 days of a trial are make-or-break. Users are deciding whether to commit or churn. Proactive outreach during this window can increase conversion rates by 40%. The key is not pushy sales tactics but helpful guidance: remove blockers, show value, and make buying easy.",
+                pocusImplementation: "Set up a playbook that triggers when trial end date is approaching, surfaces key engagement metrics, and provides reps with usage insights to drive relevant conversations.",
+                setupSteps: [
+                    "Sync trial end date from your product database to Pocus",
+                    "Create playbook: Trial End Date is between 3-7 days from now",
+                    "Include usage metrics in the drilldown (login frequency, features used)",
+                    "Create tiered outreach: High usage = conversion focus, Low usage = re-engagement",
+                    "Use AI Strategy to generate personalized value messaging",
+                    "Automate email sequence with conversion offer"
+                ],
+                url: "https://pocus-knowledge-base.help.usepylon.com/articles/5930457498-research-accounts-with-drilldowns"
+            }
+        };
+
+        const SIGNAL_RECOMMENDATIONS = {
+            website_visit: "Essential for identifying active buying intent. Install the Pocus tracking snippet on your pricing, demo request, and key product pages.",
+            demo_request: "High-value conversion moment. Ensure fast response with automated playbook routing to account owners.",
+            job_switcher: "Leverage existing relationships. Enable Pocus enrichment to automatically detect when champions move to new companies.",
+            director_signup: "For PLG companies, Director+ signups signal enterprise buying intent. Create a dedicated high-touch play for these users.",
+            trial_ending: "Critical conversion window. Set up automated outreach 3-7 days before trial expiration.",
+            usage_increase: "Leading indicator of expansion. Track product engagement trends to identify growth opportunities.",
+            relevant_news: "News events create buying windows. Connect intent data to trigger timely, contextual outreach."
+        };
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState('welcome');
+            const [currentCategory, setCurrentCategory] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [results, setResults] = useState(null);
+
+            const categories = Object.keys(ASSESSMENT_DATA);
+
+            const handleAnswer = (questionId, value) => {
+                setAnswers({ ...answers, [questionId]: value });
+            };
+
+            const handleCheckboxAnswer = (questionId, value, checked) => {
+                const currentAnswers = answers[questionId] || [];
+                if (checked) {
+                    setAnswers({ ...answers, [questionId]: [...currentAnswers, value] });
+                } else {
+                    setAnswers({ ...answers, [questionId]: currentAnswers.filter(v => v !== value) });
+                }
+            };
+
+            const handleNext = () => {
+                if (currentCategory < categories.length - 1) {
+                    setCurrentCategory(currentCategory + 1);
+                } else {
+                    calculateResults();
+                }
+            };
+
+            const handlePrevious = () => {
+                if (currentCategory > 0) {
+                    setCurrentCategory(currentCategory - 1);
+                }
+            };
+
+            const isQuestionAnswered = (question) => {
+                const answer = answers[question.id];
+                if (question.type === 'checkbox') {
+                    return answer && answer.length > 0;
+                }
+                return answer !== undefined && answer !== null;
+            };
+
+            const calculateResults = () => {
+                // Calculate category scores (excluding checkbox questions)
+                const categoryScores = {};
+                const selectedPlays = answers.pb1 || [];
+                
+                Object.keys(ASSESSMENT_DATA).forEach(category => {
+                    const questions = ASSESSMENT_DATA[category].questions;
+                    const numericQuestions = questions.filter(q => q.type !== 'checkbox');
+                    const categoryAnswers = numericQuestions.map(q => answers[q.id] || 0);
+                    const avg = categoryAnswers.reduce((a, b) => a + b, 0) / categoryAnswers.length;
+                    categoryScores[category] = Math.round(avg * 10) / 10;
+                });
+
+                const overallScore = Object.values(categoryScores).reduce((a, b) => a + b, 0) / Object.values(categoryScores).length;
+                const roundedOverall = Math.round(overallScore * 2) / 2;
+
+                let level, levelName;
+                if (roundedOverall < 1.5) { level = 1; levelName = "Foundational"; }
+                else if (roundedOverall < 2.5) { level = 2; levelName = "Emerging"; }
+                else if (roundedOverall < 3.5) { level = 3; levelName = "Scaling"; }
+                else if (roundedOverall < 4.5) { level = 4; levelName = "Strategic"; }
+                else { level = 5; levelName = "Best-in-Class"; }
+
+                const recommendations = generateRecommendations(categoryScores, roundedOverall, selectedPlays);
+
+                setResults({
+                    categoryScores,
+                    overallScore: roundedOverall,
+                    level,
+                    levelName,
+                    recommendations,
+                    selectedPlays
+                });
+
+                setCurrentStep('results');
+            };
+
+            const generateRecommendations = (categoryScores, overallScore, selectedPlays) => {
+                const recs = [];
+
+                // Add play-based recommendations for missing plays
+                // Prioritize key missing plays
+                const priorityPlays = ['website_visit', 'demo_request', 'job_switcher', 'director_signup', 'trial_ending', 'relevant_news'];
+                const missingPriorityPlays = priorityPlays.filter(p => !selectedPlays.includes(p));
+
+                missingPriorityPlays.forEach(playKey => {
+                    if (PLAY_RECOMMENDATIONS[playKey]) {
+                        recs.push({
+                            category: "Missing High-Value Play",
+                            type: "play",
+                            priority: "HIGH",
+                            ...PLAY_RECOMMENDATIONS[playKey]
+                        });
+                    }
+                });
+
+                // Add category-based recommendations
+                const RECOMMENDATIONS = {
+                    accountPrioritization: {
+                        "0-1": {
+                            title: "Build Your Foundation: Create Your First Account Score",
+                            priority: "CRITICAL",
+                            timeframe: "Week 1",
+                            description: "Account scoring is the foundation of effective outbound sales. Without it, reps waste time on poor-fit accounts while missing high-potential opportunities. A good scoring system combines firmographic data (company size, industry, revenue) with behavioral signals to surface accounts most likely to convert.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Scores > Create Score",
+                                "Start with firmographic signals: Industry, Employee Count, Revenue",
+                                "Add 2-3 basic fit criteria (e.g., target industries, company size ranges)",
+                                "Set up peer groups to compare similar companies",
+                                "Goal: Have a working A-F score within 1 week"
+                            ],
+                            metrics: "100% of accounts have a score",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/7123915698-scores"
+                        },
+                        "1-2": {
+                            title: "Build Your Foundation: Create Your First Account Score",
+                            priority: "CRITICAL",
+                            timeframe: "Week 1",
+                            description: "Account scoring is the foundation of effective outbound sales. Without it, reps waste time on poor-fit accounts while missing high-potential opportunities. A good scoring system combines firmographic data (company size, industry, revenue) with behavioral signals to surface accounts most likely to convert.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Scores > Create Score",
+                                "Start with firmographic signals: Industry, Employee Count, Revenue",
+                                "Add 2-3 basic fit criteria (e.g., target industries, company size ranges)",
+                                "Set up peer groups to compare similar companies",
+                                "Goal: Have a working A-F score within 1 week"
+                            ],
+                            metrics: "100% of accounts have a score",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/7123915698-scores"
+                        },
+                        "2-3": {
+                            title: "Level Up: Add Technographics & Growth Signals",
+                            priority: "HIGH",
+                            timeframe: "Weeks 2-4",
+                            description: "Basic firmographics tell you company size and industry, but technographics and growth signals tell you timing and need. Companies using competitor tools are ripe for displacement. Fast-growing companies need better solutions. Recent funding means fresh budget. Layer these signals into your scoring to dramatically improve targeting precision.",
+                            pocusSteps: [
+                                "Add tech stack signals (competitor tools, complementary tech)",
+                                "Include growth indicators (employee growth %, recent funding)",
+                                "Create custom signals for your specific ICP attributes",
+                                "Navigate to Workspace Settings > Signals > Create Signal",
+                                "Create signals like 'Director+', 'Target Tech Stack', 'High Growth'"
+                            ],
+                            metrics: "Score uses 10+ signals across firmographics, technographics, growth",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/1991751169-signals"
+                        },
+                        "3-4": {
+                            title: "Optimize: Implement Regular Score Reviews",
+                            priority: "MEDIUM",
+                            timeframe: "Monthly cadence",
+                            description: "Your ICP evolves as your product and market mature. What worked 6 months ago may not work today. Regular score reviews ensure your targeting stays sharp. Analyze which score bands convert best, adjust signal weights, and add niche signals that correlate with closed-won deals. This continuous improvement is what separates good teams from great ones.",
+                            pocusSteps: [
+                                "Schedule monthly score review meeting with RevOps and Sales Leadership",
+                                "Analyze conversion rates by score band (A vs B vs C accounts)",
+                                "Add niche signals specific to your best customers",
+                                "Create separate scores for different segments (SMB vs Enterprise)",
+                                "Use Pocus Play Reporting to validate score effectiveness"
+                            ],
+                            metrics: "Score reviewed monthly, correlates with pipeline generation",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/4028297273-playbook-reporting"
+                        },
+                        "4-5": {
+                            title: "Excellence: AI-Powered Dynamic Scoring",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "The future of account scoring is AI that continuously learns which accounts convert and automatically adjusts scoring criteria. Dynamic scoring surfaces net-new high-fit accounts before your competitors find them.",
+                            pocusSteps: [
+                                "Work with Pocus team to enable AI scoring features",
+                                "Set up automatic score recalculation based on new data",
+                                "Implement score-based routing and prioritization",
+                                "Create score-triggered automated workflows"
+                            ],
+                            metrics: "Score automatically surfaces net-new high-fit accounts weekly",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/7123915698-scores"
+                        }
+                    },
+                    intentSignals: {
+                        "0-1": {
+                            title: "Start Tracking: Set Up First-Party Signals",
+                            priority: "CRITICAL",
+                            timeframe: "Weeks 1-2",
+                            description: "First-party intent signals—website visits, form fills, content downloads—are the strongest predictors of buying intent. They show you exactly which accounts are actively researching solutions right now. Without tracking these, you're flying blind, relying on cold outreach instead of engaging prospects who've already raised their hand.",
+                            pocusSteps: [
+                                "Install Pocus website tracking snippet on high-intent pages (pricing, demo, product)",
+                                "Connect MQL/form fill data from your marketing automation platform to your CRM",
+                                "Define high-intent pages: Pricing, Demo Request, Product Pages, Case Studies",
+                                "Work with marketing to install tracking code",
+                                "Create your first playbook for pricing page visitors"
+                            ],
+                            metrics: "Track 3-5 first-party intent signals",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/9498485140-pocus-onboarding-wizard"
+                        },
+                        "1-2": {
+                            title: "Start Tracking: Set Up First-Party Signals",
+                            priority: "CRITICAL",
+                            timeframe: "Weeks 1-2",
+                            description: "First-party intent signals—website visits, form fills, content downloads—are the strongest predictors of buying intent. They show you exactly which accounts are actively researching solutions right now. Without tracking these, you're flying blind, relying on cold outreach instead of engaging prospects who've already raised their hand.",
+                            pocusSteps: [
+                                "Install Pocus website tracking snippet on high-intent pages (pricing, demo, product)",
+                                "Connect MQL/form fill data from your marketing automation platform to your CRM",
+                                "Define high-intent pages: Pricing, Demo Request, Product Pages, Case Studies",
+                                "Work with marketing to install tracking code",
+                                "Create your first playbook for pricing page visitors"
+                            ],
+                            metrics: "Track 3-5 first-party intent signals",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/9498485140-pocus-onboarding-wizard"
+                        },
+                        "2-3": {
+                            title: "Expand Coverage: Add Third-Party Signals",
+                            priority: "HIGH",
+                            timeframe: "Weeks 3-6",
+                            description: "First-party signals only show you accounts already engaging with your brand. Third-party intent reveals the 95% of your market that hasn't found you yet—but is actively searching for solutions. Keyword research signals, job changes, and technographic data help you identify buying windows before competitors do.",
+                            pocusSteps: [
+                                "Enable company-level website visitor tracking using reverse IP tools",
+                                "Set up job change notifications via Pocus enrichment or LinkedIn Sales Nav",
+                                "Add keyword intent data if available (Bombora, 6sense, etc.)",
+                                "Create dedicated plays for each signal type: Website spike, Job switcher, Keyword intent",
+                                "Set appropriate SLAs for each signal type (24-48hrs for high intent)"
+                            ],
+                            metrics: "5-7 active signals across 1p and 3p sources",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/2739812848-plays"
+                        },
+                        "3-4": {
+                            title: "Go Deep: Comprehensive Signal Coverage",
+                            priority: "MEDIUM",
+                            timeframe: "30-60 days",
+                            description: "Mature signal orchestration means every buying signal—from podcast mentions to 10-K filings to hiring spikes—is captured, prioritized, and routed to the right rep at the right time. This requires integrating multiple data sources and building a sophisticated playbook library.",
+                            pocusSteps: [
+                                "Add AI signals: podcast mentions, 10K filings, news mentions, hiring spikes",
+                                "Connect Gong or conversation intelligence for competitive mention signals",
+                                "Set up product usage signals (if applicable for PLG)",
+                                "Create signals for champion activity and engagement patterns",
+                                "Build signal-specific messaging agents for personalized outreach"
+                            ],
+                            metrics: "15+ signals orchestrated across playbooks",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/3365390137-messaging-agents"
+                        },
+                        "4-5": {
+                            title: "Orchestrate: Full GTM Signal Integration",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "Best-in-class signal orchestration means sales, marketing, and customer success are all working from the same signal taxonomy, with automated routing and prioritization across the entire customer lifecycle.",
+                            pocusSteps: [
+                                "Create signal taxonomies and hierarchies (buying signals vs engagement signals)",
+                                "Implement signal scoring and weighting based on historical conversion data",
+                                "Build cross-functional plays (sales + marketing + CS coordination)",
+                                "Set up signal-based account routing and territory assignment"
+                            ],
+                            metrics: "Signals drive automated cross-functional workflows",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8728704613-introduction-to-playbooks"
+                        }
+                    },
+                    playbooks: {
+                        "0-1": {
+                            title: "Get Started: Create Your First Playbooks",
+                            priority: "CRITICAL",
+                            timeframe: "Week 1",
+                            description: "Playbooks transform reactive selling into proactive, systematic outbound. Instead of reps randomly picking accounts, playbooks automatically surface the right accounts at the right time based on triggers you define. Start simple with 2 high-value plays.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Playbooks > Create Playbook",
+                                "Create Playbook 1: 'Pricing Page Visitors' - Surface accounts that viewed pricing in last 7 days",
+                                "Create Playbook 2: 'New Director+ Signups' - Surface new decision-maker signups (if PLG)",
+                                "Define a Goal (e.g., 'Free to Paid Conversion' or 'New Business')",
+                                "Set lifecycle stage eligibility and create trigger criteria"
+                            ],
+                            metrics: "2 live playbooks within 1 week",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8728704613-introduction-to-playbooks"
+                        },
+                        "1-2": {
+                            title: "Get Started: Create Your First Playbooks",
+                            priority: "CRITICAL",
+                            timeframe: "Week 1",
+                            description: "Playbooks transform reactive selling into proactive, systematic outbound. Instead of reps randomly picking accounts, playbooks automatically surface the right accounts at the right time based on triggers you define. Start simple with 2 high-value plays.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Playbooks > Create Playbook",
+                                "Create Playbook 1: 'Pricing Page Visitors' - Surface accounts that viewed pricing in last 7 days",
+                                "Create Playbook 2: 'New Director+ Signups' - Surface new decision-maker signups (if PLG)",
+                                "Define a Goal (e.g., 'Free to Paid Conversion' or 'New Business')",
+                                "Set lifecycle stage eligibility and create trigger criteria"
+                            ],
+                            metrics: "2 live playbooks within 1 week",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8728704613-introduction-to-playbooks"
+                        },
+                        "2-3": {
+                            title: "Scale Up: Align Playbooks to GTM Goals",
+                            priority: "HIGH",
+                            timeframe: "Weeks 2-6",
+                            description: "Random plays create random results. Strategic playbooks align to business outcomes: new business, expansion, churn prevention, deal acceleration. Each goal needs 3-5 plays that work together to move accounts through your funnel. This systematic approach ensures consistent execution and measurable ROI.",
+                            pocusSteps: [
+                                "Create Goals for: New Business, Expansion, Deal Velocity, Churn Prevention",
+                                "Build 3-5 plays per goal covering different buying scenarios",
+                                "Set up proper routing so plays go to the right reps (use Territories feature)",
+                                "Define what 'success' means for each goal (e.g., Opp Created, Meeting Booked)",
+                                "Set up conversion tracking in Play Reporting"
+                            ],
+                            metrics: "3-4 goals with 3-5 plays each (12-20 total plays)",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/9023409644-goals"
+                        },
+                        "3-4": {
+                            title: "Automate: Add SLAs and Automation",
+                            priority: "MEDIUM",
+                            timeframe: "30-60 days",
+                            description: "Manual playbooks create bottlenecks. Automation ensures every trigger gets immediate action, SLAs hold reps accountable, and high-velocity plays (like demo requests) never slip through the cracks. The goal is to automate the routine and preserve human touch for high-value interactions.",
+                            pocusSteps: [
+                                "Set SLAs for time-sensitive plays (e.g., 24hr for pricing page visits, 2hr for demo requests)",
+                                "Create automated actions: create contact, enroll in SEP sequence, update CRM fields",
+                                "Build AI recommendations into plays to guide rep actions",
+                                "Implement play priority rankings so reps focus on highest-value activities",
+                                "Use branching and conditional logic for personalized routing"
+                            ],
+                            metrics: "50%+ of plays have automation and SLAs",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/2739812848-plays"
+                        },
+                        "4-5": {
+                            title: "Specialize: Segment-Specific Playbook Libraries",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "Best-in-class playbook orchestration means different segments get different plays. SMB gets high-volume, low-touch plays. Enterprise gets white-glove, multi-threaded plays. Verticals get industry-specific messaging. This level of sophistication requires deep playbook libraries and advanced routing.",
+                            pocusSteps: [
+                                "Build specialized plays for SMB, Mid-Market, Enterprise segments",
+                                "Create vertical-specific plays (e.g., FinTech, Healthcare, Retail)",
+                                "Implement champion tracking and expansion plays for existing customers",
+                                "Build plays that trigger other plays (cascading workflows)",
+                                "Create play templates that can be cloned and customized"
+                            ],
+                            metrics: "Playbooks deeply embedded in workflow, minimal manual work",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8728704613-introduction-to-playbooks"
+                        }
+                    },
+                    accountResearch: {
+                        "0-1": {
+                            title: "Standardize: Create Research Templates",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Without a standard research process, account prep is inconsistent—some reps spend 30 minutes, others skip it entirely. Templates ensure every rep does the minimum research needed for credible conversations, even if they're not naturally thorough researchers.",
+                            pocusSteps: [
+                                "Build LinkedIn research checklist (company page, decision makers, recent posts)",
+                                "Create Google search template (company + keywords: news, product launch, funding)",
+                                "Standardize what reps should look for: recent news, tech stack, team size, growth indicators",
+                                "Document research process in internal wiki or Notion",
+                                "Train team on 'How to research an account in 15 minutes'"
+                            ],
+                            metrics: "Consistent 15-min research process",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/5930457498-research-accounts-with-drilldowns"
+                        },
+                        "1-2": {
+                            title: "Standardize: Create Research Templates",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Without a standard research process, account prep is inconsistent—some reps spend 30 minutes, others skip it entirely. Templates ensure every rep does the minimum research needed for credible conversations, even if they're not naturally thorough researchers.",
+                            pocusSteps: [
+                                "Build LinkedIn research checklist (company page, decision makers, recent posts)",
+                                "Create Google search template (company + keywords: news, product launch, funding)",
+                                "Standardize what reps should look for: recent news, tech stack, team size, growth indicators",
+                                "Document research process in internal wiki or Notion",
+                                "Train team on 'How to research an account in 15 minutes'"
+                            ],
+                            metrics: "Consistent 15-min research process",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/5930457498-research-accounts-with-drilldowns"
+                        },
+                        "2-3": {
+                            title: "Leverage AI: Start Using AI Strategy in Pocus",
+                            priority: "HIGH",
+                            timeframe: "Weeks 3-4",
+                            description: "Manual research is slow and inconsistent. Some reps are great at it, others skip it entirely. AI Strategy in Pocus gives every rep instant access to comprehensive account intelligence: how the company makes money, strategic initiatives, competitive landscape, and personalized messaging angles. This democratizes research quality across your team.",
+                            pocusSteps: [
+                                "Navigate to any account in Pocus > AI Strategy tab",
+                                "Use AI Q&A to ask: 'How does this company make money?', 'What are their strategic initiatives?', 'What challenges might they be facing?'",
+                                "Train reps to review AI Strategy before all calls and outreach",
+                                "Set up external ChatGPT prompts for supplemental research",
+                                "Document best practices for AI-assisted research in your playbook"
+                            ],
+                            metrics: "Research time drops to 10-15 min with better insights",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/1209090590-deep-dive-into-account-research-with-ai-strategy"
+                        },
+                        "3-4": {
+                            title: "Consolidate: Single Source of Truth",
+                            priority: "MEDIUM",
+                            timeframe: "30-45 days",
+                            description: "Reps waste time jumping between tools—CRM for opportunity data, Gong for call history, product analytics for usage, LinkedIn for contacts. A consolidated drilldown brings everything together: one screen with all the context needed for informed outreach. This reduces research time by 50% while improving quality.",
+                            pocusSteps: [
+                                "Ensure Gong call recordings are connected to Pocus (if applicable)",
+                                "Verify CRM data is syncing properly (opportunities, contacts, activities)",
+                                "Confirm product usage data is flowing to Pocus (if PLG)",
+                                "Set up recent activity tracking to show latest touches",
+                                "Train reps to open account drilldown before any outreach—make it muscle memory"
+                            ],
+                            metrics: "Single pane of glass, 5-10 min research time",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/5930457498-research-accounts-with-drilldowns"
+                        },
+                        "4-5": {
+                            title: "Personalize: Stage-Based Research Templates",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "Context matters. Researching a cold prospect is different from prepping for a renewal conversation. Stage-based research templates give reps the right information at the right time—competitive intel for early stage, usage patterns for expansion, risk factors for renewals.",
+                            pocusSteps: [
+                                "Create different AI Strategy prompt templates for: Prospecting, Active Deal, Expansion, Renewal",
+                                "Build custom drilldown views for each stage (show relevant data based on lifecycle)",
+                                "Set up automated research summaries that update based on new signals",
+                                "Create stage-specific messaging guidance"
+                            ],
+                            metrics: "<5 min research with AI-generated, context-aware summaries",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/1209090590-deep-dive-into-account-research-with-ai-strategy"
+                        }
+                    },
+                    contactSelection: {
+                        "0-1": {
+                            title: "Define: Build Persona Framework",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Reps who target everyone waste time on people who can't buy. A clear persona framework defines who matters: economic buyers (hold budget), champions (advocate internally), and technical evaluators (influence decisions). This focus prevents wasted outreach to irrelevant contacts.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Company Profile > Personas",
+                                "Define 3-5 core personas with titles, departments, and why they matter",
+                                "Document persona pain points and value propositions",
+                                "Create LinkedIn Sales Navigator saved searches for each persona",
+                                "Share saved searches with entire team for consistency"
+                            ],
+                            metrics: "Clear persona definitions and basic search process",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/9012732033-making-sure-all-your-data-is-ready"
+                        },
+                        "1-2": {
+                            title: "Define: Build Persona Framework",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Reps who target everyone waste time on people who can't buy. A clear persona framework defines who matters: economic buyers (hold budget), champions (advocate internally), and technical evaluators (influence decisions). This focus prevents wasted outreach to irrelevant contacts.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Company Profile > Personas",
+                                "Define 3-5 core personas with titles, departments, and why they matter",
+                                "Document persona pain points and value propositions",
+                                "Create LinkedIn Sales Navigator saved searches for each persona",
+                                "Share saved searches with entire team for consistency"
+                            ],
+                            metrics: "Clear persona definitions and basic search process",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/9012732033-making-sure-all-your-data-is-ready"
+                        },
+                        "2-3": {
+                            title: "Visualize: Implement SmartMap for Multi-Threading",
+                            priority: "HIGH",
+                            timeframe: "Weeks 3-5",
+                            description: "Single-threaded deals are risky deals. One person leaving can kill your opportunity. SmartMap visualizes your relationship coverage across the buying committee, showing you exactly where you're strong and where you're dangerously exposed. This visual approach makes multi-threading natural and systematic rather than an afterthought.",
+                            pocusSteps: [
+                                "Open any account in Pocus > SmartMap tab",
+                                "Use SmartMap to visualize org coverage by department and seniority",
+                                "Train reps to identify coverage gaps (departments or seniority levels with no relationships)",
+                                "Set team expectation: 3+ contacts per strategic account minimum",
+                                "Set up manual enrichment process using Pocus enrichment to find contact info",
+                                "Document enrichment workflow (when to enrich, how to validate data)"
+                            ],
+                            metrics: "Reps consistently multi-thread using visual guidance",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8434814061-multi-thread-with-smartmaps"
+                        },
+                        "3-4": {
+                            title: "Automate: AI-Recommended Contacts",
+                            priority: "MEDIUM",
+                            timeframe: "30-60 days",
+                            description: "Manual contact selection is guesswork. AI-recommended contacts use your historical data to predict who's most likely to engage based on org structure, titles, and past engagement patterns. Automated enrichment means reps never waste time hunting for email addresses—they just click and send.",
+                            pocusSteps: [
+                                "Configure plays to recommend specific personas based on your definitions",
+                                "Set up automated enrichment so new contacts are automatically found and added",
+                                "Create org maps showing engagement status (who's engaged, who's cold, who's missing)",
+                                "Build separate plays for different buying committee members (executive sponsor play, champion play, technical evaluator play)",
+                                "Use People Filters in plays to surface the right contacts automatically"
+                            ],
+                            metrics: "AI recommends right contacts, enrichment is automatic",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/2739812848-plays"
+                        },
+                        "4-5": {
+                            title: "Orchestrate: Automated Persona Scoring",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "Best-in-class contact selection means every person is scored based on engagement history, org influence, and propensity to respond. The system tells reps exactly who to contact, when, and with what message. This removes guesswork and maximizes reply rates.",
+                            pocusSteps: [
+                                "Score contacts based on likelihood to engage (historical reply rates by persona/seniority)",
+                                "Create heat maps showing 'warm' contacts vs 'cold' contacts",
+                                "Build advanced list building with cross-object filters (show me Director+ at companies with A scores)",
+                                "Automate contact prioritization (surface warmest contacts first)",
+                                "Implement contact-level sequences that adapt based on engagement"
+                            ],
+                            metrics: "System tells reps exactly who to contact when",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/4882516253-custom-list-building"
+                        }
+                    },
+                    messaging: {
+                        "0-1": {
+                            title: "Templatize: Build Core Message Library",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Blank page syndrome kills productivity. When reps write from scratch every time, quality varies wildly and volume suffers. A template library provides proven starting points that reps can quickly customize. Even simple templates with merge fields (name, company, title) dramatically improve efficiency and consistency.",
+                            pocusSteps: [
+                                "Build 5-10 email templates for common scenarios (cold outreach, demo follow-up, pricing questions, trial check-in)",
+                                "Add basic merge fields: {{firstName}}, {{companyName}}, {{title}}",
+                                "Store templates in your SEP (Outreach, Salesloft) or shared drive",
+                                "Train team on personalization basics: always customize the first sentence",
+                                "Ensure at least one custom sentence per email referencing specific context"
+                            ],
+                            metrics: "Consistent templates with basic personalization",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8371074098-create-personalized-outreach-with-ai-message-generation"
+                        },
+                        "1-2": {
+                            title: "Templatize: Build Core Message Library",
+                            priority: "MEDIUM",
+                            timeframe: "Week 2",
+                            description: "Blank page syndrome kills productivity. When reps write from scratch every time, quality varies wildly and volume suffers. A template library provides proven starting points that reps can quickly customize. Even simple templates with merge fields (name, company, title) dramatically improve efficiency and consistency.",
+                            pocusSteps: [
+                                "Build 5-10 email templates for common scenarios (cold outreach, demo follow-up, pricing questions, trial check-in)",
+                                "Add basic merge fields: {{firstName}}, {{companyName}}, {{title}}",
+                                "Store templates in your SEP (Outreach, Salesloft) or shared drive",
+                                "Train team on personalization basics: always customize the first sentence",
+                                "Ensure at least one custom sentence per email referencing specific context"
+                            ],
+                            metrics: "Consistent templates with basic personalization",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/8371074098-create-personalized-outreach-with-ai-message-generation"
+                        },
+                        "2-3": {
+                            title: "Contextualize: Account-Based Personalization",
+                            priority: "HIGH",
+                            timeframe: "Weeks 3-6",
+                            description: "Generic templates get ignored. Account-based messaging references specific pain points, recent signals, and strategic initiatives to show you've done your homework. This requires research (hence why AI Strategy matters), but the payoff is 3-5x higher reply rates. Personalized emails stand out in crowded inboxes.",
+                            pocusSteps: [
+                                "Train reps to reference specific account context in every email (recent news, signals, pain points)",
+                                "Mention recent account activity or triggers (e.g., 'I saw you recently viewed our pricing page')",
+                                "Connect your solution to their strategic initiatives (found in AI Strategy)",
+                                "Use AI Strategy insights to pull talking points for each account",
+                                "Create a checklist: Every email should include one account-specific reference"
+                            ],
+                            metrics: "Messages reference specific account context",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/1209090590-deep-dive-into-account-research-with-ai-strategy"
+                        },
+                        "3-4": {
+                            title: "Generate: Set Up AI Message Generation",
+                            priority: "MEDIUM",
+                            timeframe: "30-45 days",
+                            description: "Personalization at scale is the holy grail of outbound sales. AI message generation in Pocus combines your best messaging with account-specific context—strategic initiatives, recent signals, persona-specific pain points—to create personalized emails in seconds. This means more outreach, higher quality, less rep burnout.",
+                            pocusSteps: [
+                                "Navigate to Workspace Settings > Messaging Agents > Create Agent",
+                                "Create Messaging Agents for different use cases (cold outreach, warm follow-up, PLG conversion, expansion)",
+                                "Train agents with your 3-5 best performing email examples",
+                                "Configure agents with your value props, case studies, and persona pain points",
+                                "Use 'Generate Message' button in plays to create personalized emails instantly",
+                                "Review and edit AI output—treat AI as a starting point, not final draft"
+                            ],
+                            metrics: "80%+ of messages use AI generation",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/3365390137-messaging-agents"
+                        },
+                        "4-5": {
+                            title: "Consult: Strategic AI Messaging",
+                            priority: "OPTIMIZATION",
+                            timeframe: "Ongoing",
+                            description: "Best-in-class messaging doesn't sound like marketing—it sounds like consulting. Messages reference strategic business priorities, industry challenges, and competitive positioning. This requires sophisticated AI that combines account intelligence, industry knowledge, and proven messaging patterns. The goal: every email feels handcrafted.",
+                            pocusSteps: [
+                                "Build messaging agents that reference strategic initiatives from AI Strategy",
+                                "Create multi-step sequences with AI (follow-up messages that reference previous touches)",
+                                "Set up A/B testing for message variants to continuously improve",
+                                "Implement response tracking and optimization (which messages drive replies)",
+                                "Create outcome-based messaging (messages adapt based on account stage and signals)"
+                            ],
+                            metrics: "Messages feel consultative and strategic, not templated",
+                            url: "https://pocus-knowledge-base.help.usepylon.com/articles/0695925055-advanced-ai-message-personalization"
+                        }
+                    }
+                };
+
+                Object.keys(categoryScores).forEach(category => {
+                    const score = categoryScores[category];
+                    const currentLevel = Math.floor(score);
+                    const nextLevel = currentLevel + 1;
+                    
+                    if (nextLevel <= 5) {
+                        const key = `${currentLevel}-${nextLevel}`;
+                        if (RECOMMENDATIONS[category] && RECOMMENDATIONS[category][key]) {
+                            const rec = RECOMMENDATIONS[category][key];
+                            
+                            let priority = "MEDIUM";
+                            if (score < 2) priority = "CRITICAL";
+                            else if (score < overallScore - 0.5) priority = "HIGH";
+
+                            recs.push({
+                                category: ASSESSMENT_DATA[category].title,
+                                currentLevel,
+                                targetLevel: nextLevel,
+                                score,
+                                type: "category",
+                                priority,
+                                ...rec
+                            });
+                        }
+                    }
+                });
+
+                recs.sort((a, b) => {
+                    const priorityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, OPTIMIZATION: 3 };
+                    return priorityOrder[a.priority] - priorityOrder[b.priority];
+                });
+
+                return recs;
+            };
+
+            const downloadPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Title
+                doc.setFontSize(20);
+                doc.text("Pocus Outbound Maturity Success Plan", 20, 20);
+                
+                // Overall Score
+                doc.setFontSize(16);
+                doc.text(`Overall Level: ${results.level} - ${results.levelName}`, 20, 35);
+                doc.text(`Overall Score: ${results.overallScore}`, 20, 45);
+                
+                // Category Scores
+                doc.setFontSize(12);
+                doc.text("Category Scores:", 20, 60);
+                let yPos = 70;
+                Object.entries(results.categoryScores).forEach(([category, score]) => {
+                    doc.text(`${ASSESSMENT_DATA[category].title}: ${score.toFixed(1)}`, 25, yPos);
+                    yPos += 7;
+                });
+                
+                // Recommendations
+                yPos += 10;
+                doc.setFontSize(14);
+                doc.text("Your Recommendations:", 20, yPos);
+                yPos += 10;
+                
+                doc.setFontSize(10);
+                results.recommendations.slice(0, 5).forEach((rec, idx) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFontSize(12);
+                    doc.text(`${idx + 1}. ${rec.title}`, 20, yPos);
+                    yPos += 7;
+                    
+                    doc.setFontSize(10);
+                    doc.text(`Priority: ${rec.priority} | ${rec.timeframe || ''}`, 25, yPos);
+                    yPos += 7;
+                    
+                    if (rec.description) {
+                        const splitDesc = doc.splitTextToSize(rec.description, 170);
+                        doc.text(splitDesc, 25, yPos);
+                        yPos += (splitDesc.length * 5) + 5;
+                    }
+                    
+                    yPos += 5;
+                });
+                
+                doc.save("pocus-success-plan.pdf");
+            };
+
+            const contactSales = () => {
+                window.location.href = "mailto:sales@pocus.com?subject=Success%20Plan%20Follow-Up&body=Hi%20Pocus%20team,%0D%0A%0D%0AI%20just%20completed%20the%20Outbound%20Maturity%20Assessment%20and%20would%20love%20to%20discuss%20my%20results%20and%20how%20to%20implement%20the%20recommendations.%0D%0A%0D%0AMy%20maturity%20level:%20" + (results ? results.levelName : "") + "%0D%0A%0D%0AThanks!";
+            };
+
+            const resetAssessment = () => {
+                setCurrentStep('welcome');
+                setCurrentCategory(0);
+                setAnswers({});
+                setResults(null);
+            };
+
+            if (currentStep === 'welcome') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-8">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-xl p-12">
+                                <h1 className="text-4xl font-bold text-purple-900 mb-4">
+                                    Pocus Outbound Maturity Success Plan Generator
+                                </h1>
+                                <p className="text-xl text-gray-700 mb-8">
+                                    Discover your outbound maturity level and get a personalized success plan to drive excellence in Pocus.
+                                </p>
+                                
+                                <div className="bg-purple-50 rounded-lg p-6 mb-8">
+                                    <h2 className="text-2xl font-semibold text-purple-900 mb-4">What you'll get:</h2>
+                                    <ul className="space-y-3 text-gray-700">
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Your maturity level across 6 key categories</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Identification of missing high-value plays and signals</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Prioritized recommendations with business context</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Step-by-step Pocus implementation guides</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Direct links to relevant Pocus documentation</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-purple-600 mr-2">✓</span>
+                                            <span>Downloadable PDF success plan</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-blue-50 rounded-lg p-6 mb-8">
+                                    <p className="text-gray-700">
+                                        <strong>Time to complete:</strong> 5-7 minutes<br/>
+                                        <strong>Questions:</strong> 10 questions across 6 categories
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => setCurrentStep('assessment')}
+                                    className="w-full bg-purple-600 text-white py-4 px-8 rounded-lg text-xl font-semibold hover:bg-purple-700 transition"
+                                >
+                                    Start Assessment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (currentStep === 'assessment') {
+                const categoryKey = categories[currentCategory];
+                const categoryData = ASSESSMENT_DATA[categoryKey];
+                const progress = ((currentCategory + 1) / categories.length) * 100;
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-8">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="mb-8">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-medium text-purple-900">
+                                        Category {currentCategory + 1} of {categories.length}
+                                    </span>
+                                    <span className="text-sm font-medium text-purple-900">
+                                        {Math.round(progress)}% Complete
+                                    </span>
+                                </div>
+                                <div className="w-full bg-purple-200 rounded-full h-2">
+                                    <div 
+                                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-xl p-8">
+                                <h2 className="text-3xl font-bold text-purple-900 mb-8">
+                                    {categoryData.title}
+                                </h2>
+
+                                {categoryData.questions.map((question, idx) => {
+                                    const questionNumber = currentCategory * 2 + idx + 1;
+                                    return (
+                                    <div key={question.id} className="mb-10">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                            {questionNumber}. {question.question}
+                                        </h3>
+                                        {question.type === 'checkbox' ? (
+                                            <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                                                {question.options.map(option => (
+                                                    <label
+                                                        key={option.value}
+                                                        className="flex items-start p-3 rounded-lg hover:bg-purple-50 cursor-pointer transition"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={(answers[question.id] || []).includes(option.value)}
+                                                            onChange={(e) => handleCheckboxAnswer(question.id, option.value, e.target.checked)}
+                                                            className="mt-1 mr-3"
+                                                        />
+                                                        <span className="text-gray-700">{option.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {question.options.map(option => (
+                                                    <label
+                                                        key={option.value}
+                                                        className={`flex items-start p-4 rounded-lg border-2 cursor-pointer transition ${
+                                                            answers[question.id] === option.value
+                                                                ? 'border-purple-600 bg-purple-50'
+                                                                : 'border-gray-200 hover:border-purple-300'
+                                                        }`}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={question.id}
+                                                            value={option.value}
+                                                            checked={answers[question.id] === option.value}
+                                                            onChange={() => handleAnswer(question.id, option.value)}
+                                                            className="mt-1 mr-3"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-gray-700">{option.label}</span>
+                                                                <span className="text-xs font-medium text-gray-500 ml-2">
+                                                                    Level {option.value}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )})}
+
+                                <div className="flex justify-between mt-8 pt-8 border-t">
+                                    <button
+                                        onClick={handlePrevious}
+                                        disabled={currentCategory === 0}
+                                        className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={!categoryData.questions.every(q => isQuestionAnswered(q))}
+                                        className="px-6 py-3 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    >
+                                        {currentCategory === categories.length - 1 ? 'See Results →' : 'Next →'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (currentStep === 'results' && results) {
+                const getLevelColor = (level) => {
+                    const colors = {
+                        1: 'bg-red-100 text-red-800',
+                        2: 'bg-orange-100 text-orange-800',
+                        3: 'bg-yellow-100 text-yellow-800',
+                        4: 'bg-blue-100 text-blue-800',
+                        5: 'bg-purple-100 text-purple-800'
+                    };
+                    return colors[level] || colors[1];
+                };
+
+                const getPriorityColor = (priority) => {
+                    const colors = {
+                        CRITICAL: 'bg-red-100 text-red-800 border-red-300',
+                        HIGH: 'bg-orange-100 text-orange-800 border-orange-300',
+                        MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                        OPTIMIZATION: 'bg-blue-100 text-blue-800 border-blue-300'
+                    };
+                    return colors[priority] || colors.MEDIUM;
+                };
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-8">
+                        <div className="max-w-6xl mx-auto">
+                            {/* Overall Score Card */}
+                            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                                <div className="text-center mb-6">
+                                    <h1 className="text-4xl font-bold text-purple-900 mb-2">
+                                        Your Outbound Maturity Results
+                                    </h1>
+                                    <p className="text-gray-600">Here's your personalized success plan</p>
+                                </div>
+
+                                <div className="flex items-center justify-center mb-8">
+                                    <div className="text-center">
+                                        <div className="text-6xl font-bold text-purple-600 mb-2">
+                                            {results.overallScore}
+                                        </div>
+                                        <div className={`inline-block px-6 py-2 rounded-full text-xl font-semibold ${getLevelColor(results.level)}`}>
+                                            Level {results.level}: {results.levelName}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Category Scores */}
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                                    {Object.entries(results.categoryScores).map(([category, score]) => (
+                                        <div key={category} className="bg-gray-50 rounded-lg p-4">
+                                            <div className="text-sm text-gray-600 mb-1">
+                                                {ASSESSMENT_DATA[category].title}
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-2xl font-bold text-purple-900">
+                                                    {score.toFixed(1)}
+                                                </div>
+                                                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(Math.floor(score))}`}>
+                                                    L{Math.floor(score)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Recommendations */}
+                            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                                <h2 className="text-3xl font-bold text-purple-900 mb-6">
+                                    Your Prioritized Success Plan
+                                </h2>
+                                
+                                <div className="space-y-6">
+                                    {results.recommendations.map((rec, idx) => (
+                                        <div 
+                                            key={idx}
+                                            className={`border-2 rounded-xl p-6 ${getPriorityColor(rec.priority)}`}
+                                        >
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(rec.priority)}`}>
+                                                            {rec.priority}
+                                                        </span>
+                                                        <span className="text-sm text-gray-600">
+                                                            {rec.category}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-gray-900">
+                                                        {rec.title}
+                                                    </h3>
+                                                </div>
+                                                {rec.timeframe && (
+                                                    <div className="text-sm font-semibold text-gray-600">
+                                                        {rec.timeframe}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {rec.description && (
+                                                <div className="mb-4">
+                                                    <h4 className="font-semibold text-gray-800 mb-2">Why This Matters:</h4>
+                                                    <p className="text-gray-700">{rec.description}</p>
+                                                </div>
+                                            )}
+
+                                            {rec.businessContext && (
+                                                <div className="mb-4">
+                                                    <h4 className="font-semibold text-gray-800 mb-2">Business Context:</h4>
+                                                    <p className="text-gray-700">{rec.businessContext}</p>
+                                                </div>
+                                            )}
+
+                                            {rec.pocusImplementation && (
+                                                <div className="mb-4">
+                                                    <h4 className="font-semibold text-gray-800 mb-2">How to Implement in Pocus:</h4>
+                                                    <p className="text-gray-700">{rec.pocusImplementation}</p>
+                                                </div>
+                                            )}
+
+                                            {(rec.pocusSteps || rec.setupSteps || rec.steps) && (
+                                                <div className="mb-4">
+                                                    <h4 className="font-semibold text-gray-800 mb-2">Setup Steps:</h4>
+                                                    <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                                                        {(rec.pocusSteps || rec.setupSteps || rec.steps).map((step, i) => (
+                                                            <li key={i} className="ml-2">{step}</li>
+                                                        ))}
+                                                    </ol>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-between pt-4 border-t border-gray-300">
+                                                {rec.metrics && (
+                                                    <div className="text-sm">
+                                                        <span className="font-semibold">Success Metric: </span>
+                                                        <span className="text-gray-700">{rec.metrics}</span>
+                                                    </div>
+                                                )}
+                                                {rec.url && (
+                                                    <a 
+                                                        href={rec.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-purple-600 hover:text-purple-800 underline"
+                                                    >
+                                                        📚 View Documentation →
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="bg-white rounded-2xl shadow-xl p-8">
+                                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                    <button
+                                        onClick={downloadPDF}
+                                        className="px-8 py-3 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition"
+                                    >
+                                        📄 Download PDF
+                                    </button>
+                                    <button
+                                        onClick={contactSales}
+                                        className="px-8 py-3 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition"
+                                    >
+                                        📧 Contact Pocus Team
+                                    </button>
+                                    <button
+                                        onClick={resetAssessment}
+                                        className="px-8 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                                    >
+                                        🔄 Start Over
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
